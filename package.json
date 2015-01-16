@@ -1,0 +1,36 @@
+{
+  "name": "ampersand-chess-view",
+  "description": "An ampersand chessboard view.",
+  "version": "1.0.0",
+  "author": "Luke Karrys <luke@lukekarrys.com>",
+  "dependencies": {
+    "ampersand-chess": "^1.0.0",
+    "ampersand-state": "^4.4.4",
+    "ampersand-view": "^7.2.0"
+  },
+  "devDependencies": {
+    "beefy": "^2.1.1",
+    "browserify": "^8.1.1",
+    "function-bind": "^1.0.2",
+    "jquery": "^2.1.3",
+    "jshint": "^2.5.11",
+    "phantomjs": "^1.9.13",
+    "precommit-hook": "^1.0.7",
+    "run-browser": "^2.0.1",
+    "tap-spec": "^2.1.2",
+    "tape": "^3.2.0",
+    "tape-run": "^0.3.0"
+  },
+  "keywords": [
+    "ampersand",
+    "chess",
+    "chessboard"
+  ],
+  "license": "MIT",
+  "main": "ampersand-chess-view.js",
+  "scripts": {
+    "demo": "./node_modules/.bin/beefy demo/demo.js --index=demo/index.html",
+    "start": "./node_modules/.bin/run-browser test/* --port 3001",
+    "test": "./node_modules/.bin/browserify test/*.js | tape-run | tap-spec"
+  }
+}

@@ -1,0 +1,11 @@
+.board {
+    height: 400px;
+    width: 400px;
+}
+
+.board-nav a[disabled] {
+    cursor: default;
+    color: gray;
+    text-decoration: none;
+    opacity: 0.5;
+}
