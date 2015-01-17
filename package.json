@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "author": "Luke Karrys <luke@lukekarrys.com>",
   "dependencies": {
+    "amp-defaults": "^1.0.1",
     "ampersand-chess": "^1.0.0",
     "ampersand-state": "^4.4.4",
     "ampersand-view": "^7.2.0"
@@ -29,8 +30,8 @@
   "license": "MIT",
   "main": "ampersand-chess-view.js",
   "scripts": {
-    "demo": "./node_modules/.bin/beefy demo/demo.js --index=demo/index.html",
-    "start": "./node_modules/.bin/run-browser test/* --port 3001",
-    "test": "./node_modules/.bin/browserify test/*.js | tape-run | tap-spec"
+    "demo": "beefy demo/demo.js --index=demo/index.html",
+    "start": "run-browser test/* --port 3001",
+    "test": "browserify test/*.js | tape-run | tap-spec"
   }
 }
