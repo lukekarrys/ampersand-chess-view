@@ -1,26 +1,14 @@
 var Chess = require('ampersand-chess');
 var View = require('ampersand-view');
-var defaults = require('amp-defaults');
-var Player = require('ampersand-state').extend({
-    props: {
-        color: {
-            type: 'string',
-            default: 'white',
-            test: function () {
-                if (!this.canChange) {
-                    return 'Cannot change color';
-                }
-            },
-            values: ['black', 'white', '']
-        },
-        canChange: ['boolean', true, true]
-    }
-});
-
+function formatTime (ms) {
+    return ms / 1000;
+}
 
 module.exports = View.extend({
     template: [
         '<div>',
+            '<div>Black: <span data-hook=black-time></span></div>',
+            '<div>White: <span data-hook=white-time></span></div>',
             '<div data-hook="board" class="board"></div>',
             '<nav class="board-nav" data-hook="board-nav">',
                 '<ul>',
@@ -55,50 +43,97 @@ module.exports = View.extend({
             name: 'disabled',
             selector: '[data-hook=redo], [data-hook=last]'
         },
-        status: {
-            hook: 'status'
-        }
+        status: {hook: 'status'},
+        'blackTime': {hook: 'black-time'},
+        'whiteTime': {hook: 'white-time'},
+        'pgn': {hook: 'pgn', type: 'innerHTML'},
+        'chess.ascii': {hook: 'ascii'},
+        'chess.fen': {hook: 'fen'}
     },
 
     children: {
-        chess: Chess,
-        player: Player,
+        chess: Chess
     },
+
     props: {
         boardConfig: ['object', true, function () { return {}; }],
         animating: 'boolean',
         Chessboard: 'function',
-        computer: 'boolean'
+        activePly: ['function', true, function () {
+            return function (ply) {
+                return (ply.active ? '<span style="color:red;">' : '') + ply.san + (ply.active ? '</span>' : '');
+            };
+        }],
+        computer: {
+            type: 'boolean',
+            test: function () {
+                if (!this.chess.start) {
+                    return 'Computer cannot be changed during game';
+                }
+            }
+        },
+        color: {
+            type: 'string',
+            default: 'white',
+            values: ['black', 'white', ''],
+            test: function () {
+                if (!this.chess.start) {
+                    return 'Cannot change color during game';
+                }
+            }
+        }
     },
 
     derived: {
-        disableUndo: {
-            deps: ['chess.gameOver', 'chess.canUndo'],
+        blackTime: {
+            deps: ['chess.blackTime'],
             fn: function () {
-                if (this.chess.gameOver) {
-                    return false;
+                return formatTime(this.chess.blackTime);
+            }
+        },
+        whiteTime: {
+            deps: ['chess.whiteTime'],
+            fn: function () {
+                return formatTime(this.chess.whiteTime);
+            }
+        },
+        pgn: {
+            deps: ['chess.pgnArray', 'activePly'],
+            fn: function () {
+                return this.chess.pgnArray.map(function (line) {
+                    if (typeof line === 'string') {return line;}
+                    return line.move + '. ' + this.activePly(line.ply1) + ' ' + this.activePly(line.ply2);
+                }, this).join(' ');
+            }
+        },
+        disableUndo: {
+            deps: ['chess.canUndo', 'chess.finished'],
+            fn: function () {
+                if (this.chess.finished) {
+                    return !this.chess.canUndo;
                 }
-                return !this.chess.canUndo;
+                return true;
             }
         },
         disableRedo: {
-            deps: ['chess.gameOver', 'chess.canRedo'],
+            deps: ['chess.canRedo', 'chess.finished'],
             fn: function () {
-                if (this.chess.gameOver) {
-                    return false;
+                if (this.chess.finished) {
+                    return !this.chess.canRedo;
                 }
-                return !this.chess.canRedo;
+                return true;
             }
         },
         status: {
-            deps: ['chess.turn', 'chess.winner', 'chess.endResult', 'player.color'],
+            deps: ['chess.turn', 'chess.winner', 'chess.endResult', 'color'],
             fn: function () {
                 var status;
                 if (this.chess.endResult) {
+                    status = this.chess.endResult;
                     if (this.chess.winner) {
-                        status = 'Checkmate ';
-                        if (this.player.color) {
-                            status += this.player.color === this.chess.winner ? 'You' : 'Opponent';
+                        status += ' ';
+                        if (this.color) {
+                            status += this.color === this.chess.winner ? 'You' : 'Opponent';
                         } else {
                             status += this.chess.winner;
                         }
@@ -107,8 +142,8 @@ module.exports = View.extend({
                         status = this.chess.endResult;
                     }
                 } else {
-                    if (this.player.color) {
-                        status = this.player.color === this.chess.turn ? 'Your' : 'Opponent';
+                    if (this.color) {
+                        status = this.color === this.chess.turn ? 'Your' : 'Opponent';
                     } else {
                         status = this.chess.turn;
                     }
@@ -119,77 +154,86 @@ module.exports = View.extend({
         }
     },
 
+    // ---------------------------
+    // Render
+    // ---------------------------
     render: function () {
         this.renderWithTemplate();
 
-        this.cacheElements(defaults({
-            boardEl: '[data-hook=board]',
-            asciiEl: '[data-hook=ascii]',
-            pgnEl: '[data-hook=pgn]',
-            fenEl: '[data-hook=fen]',
-            navEl: '[data-hook=board-nav]',
-            statusEl: '[data-hook=status]'
-          }, this.elements || {}));
-
-        if (this.Chessboard && this.boardEl) {
-            this.boardConfig.orientation = this.player.color || 'white';
-            this.boardConfig.position = this.chess.fen;
-            this.boardConfig.onDragStart = this.onDragStart.bind(this);
-            this.boardConfig.onDrop = this.onDrop.bind(this);
-            this.boardConfig.onSnapEnd = this.onSnapEnd.bind(this);
-            this.boardConfig.onMoveEnd = this.onMoveEnd.bind(this);
-            this.board = new this.Chessboard(this.boardEl, this.boardConfig);
+        var boardEl = this.queryByHook('board');
+        if (this.Chessboard && boardEl) {
+            this.initBoard(boardEl);
         }
 
-        this.listenToAndRun(this.chess, 'change:start', this.updateStart);
-        this.listenToAndRun(this.chess, 'change:turn', this._attemptComputerMove);
-        this.listenToAndRun(this.player, 'change:color', this.updateOrientation);
-        this.listenToAndRun(this.chess, 'change:fen', this.updatePosition);
+        if (this.computer) {
+            this.initComputer();
+        }
 
         return this;
     },
 
-    // Update the boards
-    updateStart: function () {
-        this.player.canChange = this.chess.start;
+
+    // ---------------------------
+    // The main animateable chess board
+    // ---------------------------
+    initBoard: function (boardEl) {
+        this.boardConfig.orientation = this.color;
+        this.boardConfig.position = this.chess.fen;
+        this.boardConfig.onDragStart = this.onDragStart.bind(this);
+        this.boardConfig.onDrop = this.onDrop.bind(this);
+        this.boardConfig.onSnapEnd = this.onSnapEnd.bind(this);
+        this.boardConfig.onMoveEnd = this.onMoveEnd.bind(this);
+        this.board = new this.Chessboard(boardEl, this.boardConfig);
+        this.listenToAndRun(this.chess, 'change:fen', this.updateBoard);
+        this.listenToAndRun(this, 'change:color', function () {
+            this.board.orientation(this.color);
+        });
     },
-    updateOrientation: function () {
-         this.board && this.board.orientation(this.player.color);
-    },
-    updatePosition: function (chess, fen, options) {
+    updateBoard: function (chess, fen, options) {
         var animate = true;
-        if (options && (options.multipleMoves === true || options.animate === false )) {
+        if (options && (options.multipleMoves === true || options.animate === false)) {
             animate = false;
         }
         this.board && this.board.position(this.chess.fen, animate);
-        this.asciiEl && (this.asciiEl.innerHTML = this.chess.ascii);
-        this.pgnEl && (this.pgnEl.innerHTML = this.chess.pgn);
-        this.fenEl && (this.fenEl.innerHTML = this.chess.fen);
     },
 
+
+    // ---------------------------
+    // Computer playing
+    // ---------------------------
+    initComputer: function () {
+        this.listenToAndRun(this.chess, 'change:turn', this._attemptComputerMove);
+        this.listenToAndRun(this, 'change:color', this._attemptComputerMove);
+        this.listenToAndRun(this.chess, 'change:finished', this.stopComputer);
+    },
     _attemptComputerMove: function () {
-        if (this.computer && this.player.color && !this.chess.gameOver) {
-            if (this.chess.turn !== this.player.color) {
+        if (this.color && !this.chess.finished) {
+            if (this.chess.turn !== this.color) {
                 this.playComputer();
             }
         }
     },
     playComputer: function () {
-        setTimeout(this.runAnimateAction.bind(this, {method: 'random'}), 1000);
+        this.computerMove = setTimeout(this.runAnimateAction.bind(this, {method: 'random'}), 100);
     },
+    stopComputer: function () {
+        this.computerMove && clearTimeout(this.computerMove);
+    },
+
 
 
     // ---------------------------
     // Interaction handles for Chessboard
     // ---------------------------
     onDragStart: function (source, piece) {
-        if (this.chess.gameOver) {
+        if (this.chess.finished) {
             return false;
         }
 
-        var player = (this.player.color || '').charAt(0);
+        var player = (this.color || '').charAt(0);
         var turn = this.chess.turn.charAt(0);
         var pieceColor = piece.charAt(0);
+
         if (player) {
             // If there is a player, only allow them to move their pieces on their turn
             return player === pieceColor && turn === pieceColor;
@@ -199,6 +243,10 @@ module.exports = View.extend({
         return turn === pieceColor;
     },
     onDrop: function (source, target) {
+        if (this.chess.finished) {
+            return 'snapback';
+        }
+
         var move = this.chess.move({
             from: source,
             to: target,
@@ -212,7 +260,7 @@ module.exports = View.extend({
         }
     },
     onSnapEnd: function () {
-        this.board && this.board.position(this.chess.fen);
+        this.board.position(this.chess.fen);
     },
     onMoveEnd: function () {
         this.animating = false;
@@ -221,20 +269,32 @@ module.exports = View.extend({
 
     // Run an animatable action
     // `this.animating` is set to false in the onMoveEnd handler
-    runAnimateAction: function (e) {
+    // or if the action is invalid
+    runAnimateAction: function (e, options) {
+        options || (options = {});
+        e.preventDefault && e.preventDefault();
+
         if (!this.animating) {
-            this.animating = true;
-            this.runAction(e);
+            options.animating = true;
+            this.runAction(e, options);
         }
     },
     // Run any action on the state chess object
-    runAction: function (e) {
+    runAction: function (e, options) {
+        options || (options = {});
+        e.preventDefault && e.preventDefault();
+
         var target = e.target || e || {};
         var method = target.getAttribute ? target.getAttribute('data-hook') : target.method;
         var disabled = target.hasAttribute ? target.hasAttribute('disabled') : target.disabled;
+        var result;
 
         if (!disabled && typeof this.chess[method] === 'function') {
-            this.chess[method]();
+            result = this.chess[method](options);
+        }
+
+        if (options.animating && !result) {
+            this.animating = false;
         }
     }
 });

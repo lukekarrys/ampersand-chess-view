@@ -6,10 +6,12 @@ window.board = new Board({
         pieceTheme: '/demo/img/{piece}.png',
         draggable: true,
         showNotation: false,
+        moveSpeed: 100
     },
-    player: {color: 'black'},
     chess: {
-        freezeOnFinish: true
+        freezeOnFinish: true,
+        whiteTime: 1000 * 60,
+        blackTime: 1000 * 60
     },
     Chessboard: window.ChessBoard
 }).render();

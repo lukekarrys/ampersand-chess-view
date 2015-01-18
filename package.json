@@ -4,7 +4,6 @@
   "version": "1.0.0",
   "author": "Luke Karrys <luke@lukekarrys.com>",
   "dependencies": {
-    "amp-defaults": "^1.0.1",
     "ampersand-chess": "^1.0.0",
     "ampersand-state": "^4.4.4",
     "ampersand-view": "^7.2.0"
