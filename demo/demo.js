@@ -10,8 +10,8 @@ window.board = new Board({
     },
     chess: {
         freezeOnFinish: true,
-        whiteTime: 1000 * 60,
-        blackTime: 1000 * 60
+        whiteTime: 1000 * 60 * 5,
+        blackTime: 1000 * 60 * 5
     },
     Chessboard: window.ChessBoard
 }).render();

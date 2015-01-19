@@ -1,11 +1,22 @@
-.board {
+[data-hook=board] {
     height: 400px;
     width: 400px;
+    float: left;
 }
 
-.board-nav a[disabled] {
+[data-hook="board-nav"] {
+    width: 400px;
+    float: left;
+}
+
+[data-hook="board-nav"] a[disabled] {
     cursor: default;
     color: gray;
     text-decoration: none;
     opacity: 0.5;
+}
+
+[data-hook=status], [data-hook=ascii], [data-hook=pgn], [data-hook=fen] {
+    float: right;
+    width: 400px;
 }

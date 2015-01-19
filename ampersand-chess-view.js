@@ -1,16 +1,15 @@
 var Chess = require('ampersand-chess');
 var View = require('ampersand-view');
-function formatTime (ms) {
-    return ms / 1000;
-}
+var formatTime = require('./helpers/formatTime');
+
 
 module.exports = View.extend({
     template: [
         '<div>',
             '<div>Black: <span data-hook=black-time></span></div>',
             '<div>White: <span data-hook=white-time></span></div>',
-            '<div data-hook="board" class="board"></div>',
-            '<nav class="board-nav" data-hook="board-nav">',
+            '<div data-hook="board"></div>',
+            '<nav data-hook="board-nav">',
                 '<ul>',
                     '<li><a href="#" data-hook="first">&lt;&lt;</a></li>',
                     '<li><a href="#" data-hook="undo">&lt;</a></li>',
@@ -44,9 +43,9 @@ module.exports = View.extend({
             selector: '[data-hook=redo], [data-hook=last]'
         },
         status: {hook: 'status'},
-        'blackTime': {hook: 'black-time'},
-        'whiteTime': {hook: 'white-time'},
-        'pgn': {hook: 'pgn', type: 'innerHTML'},
+        blackTime: {hook: 'black-time'},
+        whiteTime: {hook: 'white-time'},
+        pgn: {hook: 'pgn', type: 'innerHTML'},
         'chess.ascii': {hook: 'ascii'},
         'chess.fen': {hook: 'fen'}
     },
@@ -88,13 +87,13 @@ module.exports = View.extend({
         blackTime: {
             deps: ['chess.blackTime'],
             fn: function () {
-                return formatTime(this.chess.blackTime);
+                return this.chess.blackTime !== -1 ? formatTime(this.chess.blackTime) : '';
             }
         },
         whiteTime: {
             deps: ['chess.whiteTime'],
             fn: function () {
-                return formatTime(this.chess.whiteTime);
+                return this.chess.whiteTime !== -1 ? formatTime(this.chess.whiteTime) : '';
             }
         },
         pgn: {
@@ -160,8 +159,8 @@ module.exports = View.extend({
     render: function () {
         this.renderWithTemplate();
 
-        var boardEl = this.queryByHook('board');
-        if (this.Chessboard && boardEl) {
+        var boardEl;
+        if (this.Chessboard && (boardEl = this.queryByHook('board'))) {
             this.initBoard(boardEl);
         }
 
@@ -185,9 +184,10 @@ module.exports = View.extend({
         this.boardConfig.onMoveEnd = this.onMoveEnd.bind(this);
         this.board = new this.Chessboard(boardEl, this.boardConfig);
         this.listenToAndRun(this.chess, 'change:fen', this.updateBoard);
-        this.listenToAndRun(this, 'change:color', function () {
-            this.board.orientation(this.color);
-        });
+        this.listenToAndRun(this, 'change:color', this.updateOrientation);
+    },
+    updateOrientation: function () {
+        this.board.orientation(this.color);
     },
     updateBoard: function (chess, fen, options) {
         var animate = true;
