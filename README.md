@@ -20,7 +20,7 @@ Clone the repo and run `npm install && npm run demo`.
 
 Try opening up these three windows to see a game that is playable as [white](http://localhost:9966/#white), [black](http://localhost:9966/#black), and a [watcher](http://localhost:9966/).
 
-![black, white, watcher](https://cldup.com/iyWoBZZjgh.gif)
+![black, white, watcher](https://cldup.com/It2mBLh4yT.gif)
 
 
 ## API
