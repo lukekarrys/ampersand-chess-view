@@ -71,19 +71,34 @@ module.exports = View.extend({
                 }
             }
         },
-        color: {
+        role: {
             type: 'string',
-            default: 'white',
-            values: ['black', 'white', ''],
+            default: 'watcher',
+            values: ['black', 'white', 'watcher'],
             test: function () {
                 if (!this.chess.start) {
-                    return 'Cannot change color during game';
+                    return 'Cannot change role during game';
                 }
             }
         }
     },
 
     derived: {
+        color: {
+            deps: ['role'],
+            fn: function () {
+                if (this.role === 'black' || this.role === 'white') {
+                    return this.role;
+                }
+                return '';
+            }
+        },
+        orientation: {
+            deps: ['role'],
+            fn: function () {
+                return this.role === 'black' ? 'black' : 'white';
+            }
+        },
         blackTime: {
             deps: ['chess.blackTime'],
             fn: function () {
@@ -106,18 +121,18 @@ module.exports = View.extend({
             }
         },
         disableUndo: {
-            deps: ['chess.canUndo', 'chess.finished'],
+            deps: ['chess.canUndo', 'chess.finished', 'color'],
             fn: function () {
-                if (this.chess.finished) {
+                if (this.chess.finished || !this.color) {
                     return !this.chess.canUndo;
                 }
                 return true;
             }
         },
         disableRedo: {
-            deps: ['chess.canRedo', 'chess.finished'],
+            deps: ['chess.canRedo', 'chess.finished', 'color'],
             fn: function () {
-                if (this.chess.finished) {
+                if (this.chess.finished || !this.color) {
                     return !this.chess.canRedo;
                 }
                 return true;
@@ -153,21 +168,20 @@ module.exports = View.extend({
         }
     },
 
+    initialize: function (attrs) {
+        if (attrs && attrs.chess) {
+            this.chess.setInitialValues(attrs.chess);
+        }
+    },
+
+
     // ---------------------------
     // Render
     // ---------------------------
     render: function () {
         this.renderWithTemplate();
-
-        var boardEl;
-        if (this.Chessboard && (boardEl = this.queryByHook('board'))) {
-            this.initBoard(boardEl);
-        }
-
-        if (this.computer) {
-            this.initComputer();
-        }
-
+        this.initBoard(this.queryByHook('board'));
+        this.initComputer();
         return this;
     },
 
@@ -176,18 +190,20 @@ module.exports = View.extend({
     // The main animateable chess board
     // ---------------------------
     initBoard: function (boardEl) {
-        this.boardConfig.orientation = this.color;
-        this.boardConfig.position = this.chess.fen;
-        this.boardConfig.onDragStart = this.onDragStart.bind(this);
-        this.boardConfig.onDrop = this.onDrop.bind(this);
-        this.boardConfig.onSnapEnd = this.onSnapEnd.bind(this);
-        this.boardConfig.onMoveEnd = this.onMoveEnd.bind(this);
-        this.board = new this.Chessboard(boardEl, this.boardConfig);
-        this.listenToAndRun(this.chess, 'change:fen', this.updateBoard);
-        this.listenToAndRun(this, 'change:color', this.updateOrientation);
+        if (this.Chessboard && boardEl) {
+            this.boardConfig.orientation = this.orientation;
+            this.boardConfig.position = this.chess.fen;
+            this.boardConfig.onDragStart = this.onDragStart.bind(this);
+            this.boardConfig.onDrop = this.onDrop.bind(this);
+            this.boardConfig.onSnapEnd = this.onSnapEnd.bind(this);
+            this.boardConfig.onMoveEnd = this.onMoveEnd.bind(this);
+            this.board = new this.Chessboard(boardEl, this.boardConfig);
+            this.listenToAndRun(this.chess, 'change:fen', this.updateBoard);
+            this.listenToAndRun(this, 'change:orientation', this.updateOrientation);
+        }
     },
     updateOrientation: function () {
-        this.board.orientation(this.color);
+        this.board.orientation(this.orientation);
     },
     updateBoard: function (chess, fen, options) {
         var animate = true;
@@ -202,19 +218,20 @@ module.exports = View.extend({
     // Computer playing
     // ---------------------------
     initComputer: function () {
-        this.listenToAndRun(this.chess, 'change:turn', this._attemptComputerMove);
-        this.listenToAndRun(this, 'change:color', this._attemptComputerMove);
-        this.listenToAndRun(this.chess, 'change:finished', this.stopComputer);
+        if (this.computer) {
+            this.listenTo(this.chess, 'change:turn', this._attemptComputerMove);
+            this.listenTo(this, 'change:role', this._attemptComputerMove);
+            this.listenTo(this.chess, 'change:finished', this.stopComputer);
+            this._attemptComputerMove();
+        }
     },
     _attemptComputerMove: function () {
-        if (this.color && !this.chess.finished) {
-            if (this.chess.turn !== this.color) {
-                this.playComputer();
-            }
+        if (this.role && !this.chess.finished && this.chess.turn !== this.role) {
+            this.playComputer();
         }
     },
     playComputer: function () {
-        this.computerMove = setTimeout(this.runAnimateAction.bind(this, {method: 'random'}), 100);
+        this.computerMove = setTimeout(this.runAnimateAction.bind(this, {method: 'random'}), 1000);
     },
     stopComputer: function () {
         this.computerMove && clearTimeout(this.computerMove);
@@ -230,7 +247,11 @@ module.exports = View.extend({
             return false;
         }
 
-        var player = (this.color || '').charAt(0);
+        var player = this.color.charAt(0);
+        if (!player) {
+            return false;
+        }
+
         var turn = this.chess.turn.charAt(0);
         var pieceColor = piece.charAt(0);
 
@@ -273,11 +294,14 @@ module.exports = View.extend({
     runAnimateAction: function (e, options) {
         options || (options = {});
         e.preventDefault && e.preventDefault();
+        var result;
 
         if (!this.animating) {
             options.animating = true;
-            this.runAction(e, options);
+            result = this.runAction(e, options);
         }
+
+        return result;
     },
     // Run any action on the state chess object
     runAction: function (e, options) {
@@ -296,5 +320,7 @@ module.exports = View.extend({
         if (options.animating && !result) {
             this.animating = false;
         }
+
+        return result;
     }
 });
