@@ -6,16 +6,16 @@
     float: left;
 }
 
-[data-hook="board-nav"] {
+nav {
     width: 30px;
     float: left;
 }
 
-[data-hook="board-nav"] li {
+nav li {
     list-style-type: none;
 }
 
-[data-hook="board-nav"] li a {
+nav li a {
     padding: 5px;
     border: 1px solid #000;
     display: block;
@@ -23,7 +23,7 @@
     height: 20px;
 }
 
-[data-hook="board-nav"] li a[disabled] {
+nav li a[disabled] {
     cursor: default;
     color: gray;
     text-decoration: none;
