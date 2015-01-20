@@ -1,11 +1,11 @@
 {
   "name": "ampersand-chess-view",
-  "description": "An ampersand chessboard view.",
-  "version": "1.0.0",
+  "description": "An ampersand-view for playing chess games.",
+  "version": "0.0.0",
   "author": "Luke Karrys <luke@lukekarrys.com>",
+  "bugs": "https://github.com/lukekarrys/ampersand-chess-view/issues",
   "dependencies": {
-    "ampersand-chess": "^1.0.0",
-    "ampersand-state": "^4.4.4",
+    "ampersand-chess-state": "^0.1.1",
     "ampersand-view": "^7.2.0"
   },
   "devDependencies": {
@@ -21,6 +21,7 @@
     "tape": "^3.2.0",
     "tape-run": "^0.3.0"
   },
+  "homepage": "https://github.com/lukekarrys/ampersand-chess-view",
   "keywords": [
     "ampersand",
     "chess",
@@ -28,6 +29,10 @@
   ],
   "license": "MIT",
   "main": "ampersand-chess-view.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/lukekarrys/ampersand-chess-view"
+  },
   "scripts": {
     "demo": "beefy demo/demo.js --index=demo/index.html",
     "start": "run-browser test/* --port 3001",

@@ -1,6 +1,6 @@
-var Chess = require('ampersand-chess');
+var Chess = require('ampersand-chess-state');
 var View = require('ampersand-view');
-var formatTime = require('./helpers/formatTime');
+var formatTime = require('./lib/formatTime');
 
 
 module.exports = View.extend({
@@ -9,7 +9,7 @@ module.exports = View.extend({
             '<div>Black: <span data-hook=black-time></span></div>',
             '<div>White: <span data-hook=white-time></span></div>',
             '<div data-hook="board"></div>',
-            '<nav data-hook="board-nav">',
+            '<nav>',
                 '<ul>',
                     '<li><a href="#" data-hook="first">&lt;&lt;</a></li>',
                     '<li><a href="#" data-hook="undo">&lt;</a></li>',
@@ -56,7 +56,7 @@ module.exports = View.extend({
 
     props: {
         boardConfig: ['object', true, function () { return {}; }],
-        animating: 'boolean',
+        _animating: 'boolean',
         Chessboard: 'function',
         activePly: ['function', true, function () {
             return function (ply) {
@@ -74,7 +74,7 @@ module.exports = View.extend({
         role: {
             type: 'string',
             default: 'watcher',
-            values: ['black', 'white', 'watcher'],
+            values: ['black', 'white', 'watcher', 'analysis'],
             test: function () {
                 if (!this.chess.start) {
                     return 'Cannot change role during game';
@@ -197,6 +197,9 @@ module.exports = View.extend({
             this.boardConfig.onDrop = this.onDrop.bind(this);
             this.boardConfig.onSnapEnd = this.onSnapEnd.bind(this);
             this.boardConfig.onMoveEnd = this.onMoveEnd.bind(this);
+            if (this.boardConfig.draggable !== false) {
+                this.boardConfig.draggable = true;
+            }
             this.board = new this.Chessboard(boardEl, this.boardConfig);
             this.listenToAndRun(this.chess, 'change:fen', this.updateBoard);
             this.listenToAndRun(this, 'change:orientation', this.updateOrientation);
@@ -247,21 +250,23 @@ module.exports = View.extend({
             return false;
         }
 
-        var player = this.color.charAt(0);
-        if (!player) {
-            return false;
-        }
-
         var turn = this.chess.turn.charAt(0);
         var pieceColor = piece.charAt(0);
+        var isTurn = turn === pieceColor;
 
-        if (player) {
-            // If there is a player, only allow them to move their pieces on their turn
-            return player === pieceColor && turn === pieceColor;
+        // Analysis boards can always be dragged for the current color
+        if (this.role === 'analysis') {
+            return isTurn;
         }
 
-        // Lastly, only allow the current turn to be moved
-        return turn === pieceColor;
+        var player = this.color.charAt(0);
+        if (!player) {
+            // Otherwise dragging is only valid if there is a current color
+            return false;
+        } else {
+            // If there is a player, only allow them to move their pieces on their turn
+            return player === pieceColor && isTurn;
+        }
     },
     onDrop: function (source, target) {
         if (this.chess.finished) {
@@ -284,7 +289,7 @@ module.exports = View.extend({
         this.board.position(this.chess.fen);
     },
     onMoveEnd: function () {
-        this.animating = false;
+        this._animating = false;
     },
 
 
@@ -296,7 +301,7 @@ module.exports = View.extend({
         e.preventDefault && e.preventDefault();
         var result;
 
-        if (!this.animating) {
+        if (!this._animating) {
             options.animating = true;
             result = this.runAction(e, options);
         }
@@ -318,7 +323,7 @@ module.exports = View.extend({
         }
 
         if (options.animating && !result) {
-            this.animating = false;
+            this._animating = false;
         }
 
         return result;
