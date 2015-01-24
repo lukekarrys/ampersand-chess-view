@@ -1,4 +1,5 @@
 var Board = require('../ampersand-chess-view');
+var Chess = require('ampersand-chess-state');
 var key = 'chess';
 
 var hash = location.hash.slice(1);
@@ -13,12 +14,13 @@ var board = new Board({
     boardConfig: {
         pieceTheme: '/demo/img/{piece}.png'
     },
-    chess: {
+    chess: new Chess({
         pgn: localStorage[key] || '',
         freezeOnFinish: true
-    },
+    }),
     Chessboard: window.ChessBoard
 }).render();
+window.board = board;
 
 board.chess.on('change:pgn', function () {
     if (board.color) {

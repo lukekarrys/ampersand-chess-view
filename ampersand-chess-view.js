@@ -50,11 +50,8 @@ module.exports = View.extend({
         'chess.fen': {hook: 'fen'}
     },
 
-    children: {
-        chess: Chess
-    },
-
     props: {
+        chess: 'state',
         boardConfig: ['object', true, function () { return {}; }],
         _animating: 'boolean',
         Chessboard: 'function',
@@ -66,6 +63,9 @@ module.exports = View.extend({
         computer: {
             type: 'boolean',
             test: function () {
+                if (!this.chess) {
+                    return;
+                }
                 if (!this.chess.start) {
                     return 'Computer cannot be changed during game';
                 }
@@ -76,6 +76,9 @@ module.exports = View.extend({
             default: 'watcher',
             values: ['black', 'white', 'watcher', 'analysis'],
             test: function () {
+                if (!this.chess) {
+                    return;
+                }
                 if (!this.chess.start) {
                     return 'Cannot change role during game';
                 }
@@ -170,7 +173,9 @@ module.exports = View.extend({
 
     initialize: function (attrs) {
         if (attrs && attrs.chess) {
-            this.chess.setInitialValues(attrs.chess);
+            this.chess = attrs.chess;
+        } else {
+            this.chess = new Chess();
         }
     },
 
