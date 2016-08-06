@@ -1,6 +1,5 @@
 var test = require('tape');
 var ChessView = require('../ampersand-chess-view');
-Function.prototype.bind = require('function-bind');
 
 test('Init', function (t) {
     var chess = new ChessView().render();
