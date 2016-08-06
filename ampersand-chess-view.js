@@ -54,8 +54,8 @@ module.exports = View.extend({
         chess: 'state',
         boardConfig: ['object', true, function () { return {}; }],
         _animating: 'boolean',
-        Chessboard: 'function',
-        activePly: ['function', true, function () {
+        Chessboard: 'any',
+        activePly: ['any', true, function () {
             return function (ply) {
                 return (ply.active ? '<span style="color:red;">' : '') + ply.san + (ply.active ? '</span>' : '');
             };
