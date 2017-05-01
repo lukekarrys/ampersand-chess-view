@@ -1,10 +1,9 @@
 ampersand-chess-view
 -------------------------
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/lukekarrys/ampersand-chess-view.svg)](https://greenkeeper.io/)
-
 [![Build Status](https://travis-ci.org/lukekarrys/ampersand-chess-view.png?branch=master)](https://travis-ci.org/lukekarrys/ampersand-chess-view)
 [![NPM](https://nodei.co/npm/ampersand-chess-view.png)](https://nodei.co/npm/ampersand-chess-view/)
+[![Greenkeeper badge](https://badges.greenkeeper.io/lukekarrys/ampersand-chess-view.svg)](https://greenkeeper.io/)
 
 
 ## Install
